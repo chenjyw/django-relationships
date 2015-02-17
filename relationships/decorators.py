@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404
 
-from .compat import User
+from django.contrib.auth.models import User
 
 
 def require_user(view):

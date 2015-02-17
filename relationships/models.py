@@ -5,7 +5,7 @@ from django.db import models, connection
 from django.db.models.fields.related import create_many_related_manager, ManyToManyRel
 from django.utils.translation import ugettext_lazy as _
 
-from .compat import User
+from relationships.users import UserModel, UserModelString
 
 
 class RelationshipStatusManager(models.Manager):
@@ -50,9 +50,9 @@ class RelationshipStatus(models.Model):
 
 
 class Relationship(models.Model):
-    from_user = models.ForeignKey(User,
+    from_user = models.ForeignKey(UserModelString(),
         related_name='from_users', verbose_name=_('from user'))
-    to_user = models.ForeignKey(User,
+    to_user = models.ForeignKey(UserModelString(),
         related_name='to_users', verbose_name=_('to user'))
     status = models.ForeignKey(RelationshipStatus, verbose_name=_('status'))
     created = models.DateTimeField(_('created'), auto_now_add=True)
@@ -71,11 +71,11 @@ class Relationship(models.Model):
                 % {'from_user': self.from_user.username,
                    'to_user': self.to_user.username})
 
-field = models.ManyToManyField(User, through=Relationship,
+field = models.ManyToManyField(UserModelString(), through=Relationship,
                                symmetrical=False, related_name='related_to')
 
 
-class RelationshipManager(User._default_manager.__class__):
+class RelationshipManager(UserModel()._default_manager.__class__):
     def __init__(self, instance=None, *args, **kwargs):
         super(RelationshipManager, self).__init__(*args, **kwargs)
         self.instance = instance
@@ -153,14 +153,14 @@ class RelationshipManager(User._default_manager.__class__):
         if symmetrical:
             query.update(self._get_to_query(status))
 
-        return User.objects.filter(**query)
+        return UserModel().objects.filter(**query)
 
     def get_related_to(self, status):
         """
         Returns a QuerySet of user objects which have created a relationship to
         the given user.
         """
-        return User.objects.filter(**self._get_to_query(status))
+        return UserModel().objects.filter(**self._get_to_query(status))
 
     def only_to(self, status):
         """
@@ -204,7 +204,7 @@ class RelationshipManager(User._default_manager.__class__):
             if status:
                 query.update(from_users__status=status)
 
-        return User.objects.filter(**query).exists()
+        return UserModel().objects.filter(**query).exists()
 
     # some defaults
     def following(self):
@@ -231,7 +231,7 @@ if django.VERSION < (1, 2):
         def __get__(self, instance, instance_type=None):
             qn = connection.ops.quote_name
             manager = RelatedManager(
-                model=User,
+                model=UserModel(),
                 core_filters={'related_to__pk': instance._get_pk_val()},
                 instance=instance,
                 symmetrical=False,
@@ -244,7 +244,7 @@ if django.VERSION < (1, 2):
 elif django.VERSION > (1, 2) and django.VERSION < (1, 4):
 
     fake_rel = ManyToManyRel(
-        to=User,
+        to=UserModel(),
         through=Relationship)
 
     RelatedManager = create_many_related_manager(RelationshipManager, fake_rel)
@@ -252,7 +252,7 @@ elif django.VERSION > (1, 2) and django.VERSION < (1, 4):
     class RelationshipsDescriptor(object):
         def __get__(self, instance, instance_type=None):
             manager = RelatedManager(
-                model=User,
+                model=UserModel(),
                 core_filters={'related_to__pk': instance._get_pk_val()},
                 instance=instance,
                 symmetrical=False,
@@ -264,7 +264,7 @@ elif django.VERSION > (1, 2) and django.VERSION < (1, 4):
 else:
 
     fake_rel = ManyToManyRel(
-        to=User,
+        to=UserModelString(),
         through=Relationship)
 
     RelatedManager = create_many_related_manager(RelationshipManager, fake_rel)
@@ -272,7 +272,7 @@ else:
     class RelationshipsDescriptor(object):
         def __get__(self, instance, instance_type=None):
             manager = RelatedManager(
-                model=User,
+                model=UserModel(),
                 query_field_name='related_to',
                 instance=instance,
                 symmetrical=False,
@@ -283,5 +283,5 @@ else:
             return manager
 
 #HACK
-field.contribute_to_class(User, 'relationships')
-setattr(User, 'relationships', RelationshipsDescriptor())
+field.contribute_to_class(UserModel(), 'relationships')
+setattr(UserModel(), 'relationships', RelationshipsDescriptor())

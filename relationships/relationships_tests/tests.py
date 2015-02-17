@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
 from django.template import Template, Context
@@ -37,14 +36,6 @@ class BaseRelationshipsTestCase(TestCase):
         self.following = RelationshipStatus.objects.get(from_slug='following')
         self.blocking = RelationshipStatus.objects.get(from_slug='blocking')
 
-        settings.SITE_ID = 1
-        self.site_id = settings.SITE_ID
-        
-
-        self.site = Site.objects.get_current()
-
-    def tearDown(self):
-        settings.SITE_ID = self.site_id
 
     def _sort_by_pk(self, list_or_qs):
         annotated = [(item.pk, item) for item in list_or_qs]
@@ -58,7 +49,6 @@ class BaseRelationshipsTestCase(TestCase):
 class RelationshipsTestCase(BaseRelationshipsTestCase):
     def setUp(self):
         BaseRelationshipsTestCase.setUp(self)
-        self.second_site = Site.objects.create(name='ex2.com', domain='ex2.com')
 
     def test_manager(self):
         rel = self.walrus.relationships.all()
@@ -249,31 +239,6 @@ class RelationshipsTestCase(BaseRelationshipsTestCase):
 
         self.assertQuerysetEqual(self.john.relationships.only_from(self.blocking), [])
         self.assertQuerysetEqual(self.john.relationships.only_to(self.blocking), [self.paul])
-
-    def test_site_behavior(self):
-        # relationships are site-dependent
-
-        # walrus is now following John on the current site
-        self.walrus.relationships.add_user(self.john)
-
-        # walrus is now following Paul on another site
-        status = RelationshipStatus.objects.following()
-        r, _ = Relationship.objects.get_or_create(
-            from_user=self.walrus,
-            to_user=self.paul,
-            site=self.second_site,
-            status=status,
-        )
-
-        # the 'following' method is siteified
-        self.assertQuerysetEqual(self.walrus.relationships.following(), [self.john])
-
-        # ... the .all() method is not
-        self.assertQuerysetEqual(self.walrus.relationships.all(), [self.john, self.paul])
-
-        # remove only works on the current site, so paul will *NOT* be removed
-        self.walrus.relationships.remove_user(self.paul)
-        self.assertQuerysetEqual(self.walrus.relationships.all(), [self.john, self.paul])
 
 
 class RelationshipsListenersTestCase(BaseRelationshipsTestCase):
@@ -642,10 +607,8 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
     def test_extract_user_field(self):
         # just test a known pass and known fail
         from django.contrib.comments.models import Comment
-        from django.contrib.sites.models import Site
 
         self.assertEqual(extract_user_field(Comment), 'user')
-        self.assertEqual(extract_user_field(Site), None)
 
     def test_positive_filter(self):
         following = RelationshipStatus.objects.following()

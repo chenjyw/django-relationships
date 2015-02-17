@@ -81,7 +81,7 @@ class RelationshipManager(User._default_manager.__class__):
         super(RelationshipManager, self).__init__(*args, **kwargs)
         self.instance = instance
 
-    def add(self, user, status=None, symmetrical=False):
+    def add_user(self, user, status=None, symmetrical=False):
         """
         Add a relationship from one user to another with the given status,
         which defaults to "following".
@@ -110,7 +110,7 @@ class RelationshipManager(User._default_manager.__class__):
         else:
             return relationship
 
-    def remove(self, user, status=None, symmetrical=False):
+    def remove_user(self, user, status=None, symmetrical=False):
         """
         Remove a relationship from one user to another, with the same caveats
         and behavior as adding a relationship.

@@ -26,7 +26,7 @@ class BaseRelationshipsTestCase(TestCase):
         - Yoko is following John
         - Paul is blocking John
     """
-    fixtures = ['relationships.json']
+    fixtures = ['./fixtures/relationships.json']
 
     def setUp(self):
         self.walrus = User.objects.get(username='The_Walrus')  # pk 1
@@ -108,7 +108,7 @@ class RelationshipsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(rel, [self.john])
 
     def test_add_method(self):
-        self.john.relationships.add(self.walrus)
+        self.john.relationships.add_user(self.walrus)
 
         rel = self.john.relationships.all()
         self.assertQuerysetEqual(rel, [self.walrus, self.paul, self.yoko])
@@ -126,13 +126,13 @@ class RelationshipsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(rel, [self.john])
 
         # test that dupes aren't added
-        self.john.relationships.add(self.walrus)
+        self.john.relationships.add_user(self.walrus)
 
         rel = self.john.relationships.all()
         self.assertQuerysetEqual(rel, [self.walrus, self.paul, self.yoko])
 
     def test_add_symmetrical(self):
-        _, _ = self.john.relationships.add(self.walrus, symmetrical=True)
+        _, _ = self.john.relationships.add_user(self.walrus, symmetrical=True)
 
         # should show up in john's relationships
         rel = self.john.relationships.all()
@@ -150,7 +150,7 @@ class RelationshipsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(rel, [self.john])
 
     def test_remove_method(self):
-        self.john.relationships.remove(self.yoko)
+        self.john.relationships.remove_user(self.yoko)
 
         # no longer shows up in the relationships
         rel = self.john.relationships.all()
@@ -167,10 +167,10 @@ class RelationshipsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(rel, [])
 
         # no error
-        self.john.relationships.remove(self.yoko)
+        self.john.relationships.remove_user(self.yoko)
 
     def test_remove_symmetrical(self):
-        self.john.relationships.remove(self.yoko, symmetrical=True)
+        self.john.relationships.remove_user(self.yoko, symmetrical=True)
 
         rel = self.john.relationships.all()
         self.assertQuerysetEqual(rel, [self.paul])
@@ -253,7 +253,7 @@ class RelationshipsTestCase(BaseRelationshipsTestCase):
         # relationships are site-dependent
 
         # walrus is now following John on the current site
-        self.walrus.relationships.add(self.john)
+        self.walrus.relationships.add_user(self.john)
 
         # walrus is now following Paul on another site
         status = RelationshipStatus.objects.following()
@@ -271,7 +271,7 @@ class RelationshipsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(self.walrus.relationships.all(), [self.john, self.paul])
 
         # remove only works on the current site, so paul will *NOT* be removed
-        self.walrus.relationships.remove(self.paul)
+        self.walrus.relationships.remove_user(self.paul)
         self.assertQuerysetEqual(self.walrus.relationships.all(), [self.john, self.paul])
 
 
@@ -289,7 +289,7 @@ class RelationshipsListenersTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(self.john.relationships.following(), [self.paul, self.yoko])
 
         # when john blocks paul, his 'following' relationship will be deleted
-        self.john.relationships.add(self.paul, self.blocking)
+        self.john.relationships.add_user(self.paul, self.blocking)
         self.assertQuerysetEqual(self.john.relationships.blocking(), [self.paul])
         self.assertQuerysetEqual(self.john.relationships.following(), [self.yoko])
 
@@ -297,7 +297,7 @@ class RelationshipsListenersTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(self.paul.relationships.blocking(), [self.john])
 
         # when paul follows john his 'blocking' relationship will be deleted
-        self.paul.relationships.add(self.john, self.following)
+        self.paul.relationships.add_user(self.john, self.following)
         self.assertQuerysetEqual(self.paul.relationships.following(), [self.john])
         self.assertQuerysetEqual(self.paul.relationships.blocking(), [])
 
@@ -306,7 +306,7 @@ class RelationshipsListenersTestCase(BaseRelationshipsTestCase):
         detach_relationship_listener()
 
         # have john start blocking paul
-        self.john.relationships.add(self.paul, self.blocking)
+        self.john.relationships.add_user(self.paul, self.blocking)
 
         # the blocking relationship is created and the original following
         # relationship is left intact
@@ -314,7 +314,7 @@ class RelationshipsListenersTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(self.john.relationships.following(), [self.paul, self.yoko])
 
         # have paul start following john
-        self.paul.relationships.add(self.john, self.following)
+        self.paul.relationships.add_user(self.john, self.following)
 
         # the following relationship is created and the original blocking
         # relationship is left intact
@@ -571,7 +571,7 @@ class RelationshipsTagsTestCase(BaseRelationshipsTestCase):
         self.assertEqual(rendered, 'characters|')
 
         # oh no, john is blocking yoko
-        self.john.relationships.add(self.yoko, RelationshipStatus.objects.blocking())
+        self.john.relationships.add_user(self.yoko, RelationshipStatus.objects.blocking())
         c = Context({'user': self.john, 'qs': group_qs})
         rendered = t.render(c)
         self.assertEqual(rendered, 'beatles|')
@@ -675,7 +675,8 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_following_groups, [])
 
         # when paul follows john he will see john's groups
-        self.paul.relationships.add(self.john, following)
+        print "self.paul.relationships: {}".format(self.paul.relationships)
+        self.paul.relationships.add_user(self.john, following)
         paul_following_groups = positive_filter(
             group_qs,
             self.paul.relationships.following(),
@@ -683,7 +684,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_following_groups, [beatles, john_yoko])
 
         # now john's + walrus's
-        self.paul.relationships.add(self.walrus, following)
+        self.paul.relationships.add_user(self.walrus, following)
         paul_following_groups = positive_filter(
             group_qs,
             self.paul.relationships.following(),
@@ -691,7 +692,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_following_groups, [beatles, characters, john_yoko])
 
         # everybody's - distinct groups, no dupes
-        self.paul.relationships.add(self.yoko, following)
+        self.paul.relationships.add_user(self.yoko, following)
         paul_following_groups = positive_filter(
             group_qs,
             self.paul.relationships.following(),
@@ -699,7 +700,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_following_groups, [beatles, characters, john_yoko])
 
         # just groups walrus & yoko are in
-        self.paul.relationships.remove(self.john, following)
+        self.paul.relationships.remove_user(self.john, following)
         paul_following_groups = positive_filter(
             group_qs,
             self.paul.relationships.following(),
@@ -707,14 +708,14 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_following_groups, [characters, john_yoko])
 
         # just walrus' groups
-        self.paul.relationships.remove(self.yoko)
+        self.paul.relationships.remove_user(self.yoko)
         paul_following_groups = positive_filter(
             group_qs,
             self.paul.relationships.following(),
             'user')
         self.assertQuerysetEqual(paul_following_groups, [characters])
 
-        self.paul.relationships.remove(self.walrus)
+        self.paul.relationships.remove_user(self.walrus)
 
     def test_negative_filter(self):
         blocking = RelationshipStatus.objects.blocking()
@@ -746,7 +747,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_blocking_groups, [characters])
 
         # block yoko and no groups
-        self.paul.relationships.add(self.yoko, blocking)
+        self.paul.relationships.add_user(self.yoko, blocking)
         paul_blocking_groups = negative_filter(
             group_qs,
             self.paul.relationships.blocking(),
@@ -754,7 +755,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_blocking_groups, [])
 
         # block walrus - everyone is blocked, no groups
-        self.paul.relationships.add(self.walrus, blocking)
+        self.paul.relationships.add_user(self.walrus, blocking)
         paul_blocking_groups = negative_filter(
             group_qs,
             self.paul.relationships.blocking(),
@@ -762,7 +763,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_blocking_groups, [])
 
         # unblock john and we'll get beatles
-        self.paul.relationships.remove(self.john, blocking)
+        self.paul.relationships.remove_user(self.john, blocking)
         paul_blocking_groups = negative_filter(
             group_qs,
             self.paul.relationships.blocking(),
@@ -770,7 +771,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_blocking_groups, [beatles])
 
         # unblock yoko
-        self.paul.relationships.remove(self.yoko, blocking)
+        self.paul.relationships.remove_user(self.yoko, blocking)
         paul_blocking_groups = negative_filter(
             group_qs,
             self.paul.relationships.blocking(),
@@ -778,7 +779,7 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_blocking_groups, [beatles, john_yoko])
 
         # unblock walrus and we have them all
-        self.paul.relationships.remove(self.walrus, blocking)
+        self.paul.relationships.remove_user(self.walrus, blocking)
         paul_blocking_groups = negative_filter(
             group_qs,
             self.paul.relationships.blocking(),

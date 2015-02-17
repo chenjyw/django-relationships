@@ -80,9 +80,9 @@ def relationship_handler(request, user, status_slug, add=True,
 
     if request.method == 'POST':
         if add:
-            request.user.relationships.add(user, status, is_symm)
+            request.user.relationships.add_user(user, status, is_symm)
         else:
-            request.user.relationships.remove(user, status, is_symm)
+            request.user.relationships.remove_user(user, status, is_symm)
 
         if request.is_ajax():
             response = {'result': '1'}

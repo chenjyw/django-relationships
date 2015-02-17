@@ -58,7 +58,7 @@ class Relationship(models.Model):
     status = models.ForeignKey(RelationshipStatus, verbose_name=_('status'))
     created = models.DateTimeField(_('created'), auto_now_add=True)
     weight = models.FloatField(_('weight'), default=1.0, blank=True, null=True)
-    site = models.ForeignKey(Site, default=settings.SITE_ID,
+    site = models.ForeignKey(Site, null=True, blank=True,
         verbose_name=_('site'), related_name='relationships')
 
     class Meta:

@@ -106,7 +106,7 @@ class RelationshipManager(User._default_manager.__class__):
         )
 
         if symmetrical:
-            return (relationship, user.relationships.add(self.instance, status, False))
+            return (relationship, user.relationships.add_user(self.instance, status, False))
         else:
             return relationship
 
@@ -126,7 +126,7 @@ class RelationshipManager(User._default_manager.__class__):
         ).delete()
 
         if symmetrical:
-            return (res, user.relationships.remove(self.instance, status, False))
+            return (res, user.relationships.remove_user(self.instance, status, False))
         else:
             return res
 

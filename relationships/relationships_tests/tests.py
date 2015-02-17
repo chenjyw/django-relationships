@@ -675,7 +675,6 @@ class RelationshipUtilsTestCase(BaseRelationshipsTestCase):
         self.assertQuerysetEqual(paul_following_groups, [])
 
         # when paul follows john he will see john's groups
-        print "self.paul.relationships: {}".format(self.paul.relationships)
         self.paul.relationships.add_user(self.john, following)
         paul_following_groups = positive_filter(
             group_qs,

@@ -26,7 +26,7 @@ class BaseRelationshipsTestCase(TestCase):
         - Yoko is following John
         - Paul is blocking John
     """
-    fixtures = ['./fixtures/relationships.json']
+    fixtures = ['relationships.json']
 
     def setUp(self):
         self.walrus = User.objects.get(username='The_Walrus')  # pk 1

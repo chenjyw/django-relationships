@@ -27,7 +27,6 @@ def mutually_exclusive_fix(sender, instance, created, **kwargs):
             Relationship.objects.filter(
                 from_user=instance.from_user,
                 to_user=instance.to_user,
-                site=instance.site,
                 status=other
             ).delete()
 
